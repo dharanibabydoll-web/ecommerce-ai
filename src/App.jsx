@@ -473,6 +473,88 @@ function CheckoutPage({ user, cart, onOrderPlaced }) {
     </section>
   )
 }
+function OrdersPage({ user }) {
+  const [orders, setOrders] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) {
+      setIsLoading(false)
+      return
+    }
+
+    async function loadOrders() {
+      const { data } = await supabase
+        .from('orders')
+        .select('*, order_items (*)')
+        .order('created_at', { ascending: false })
+
+      setOrders(data ?? [])
+      setIsLoading(false)
+    }
+
+    loadOrders()
+  }, [user])
+
+  if (!user) {
+    return (
+      <section className="page">
+        <h1>Sign in to view orders</h1>
+        <p>Your order history is available after logging in.</p>
+        <NavLink className="primary-link" to="/login">Go to Login</NavLink>
+      </section>
+    )
+  }
+
+  if (isLoading) {
+    return <section className="page"><p>Loading your orders...</p></section>
+  }
+
+  if (orders.length === 0) {
+    return (
+      <section className="page">
+        <h1>Your Orders</h1>
+        <p>You have not placed an order yet.</p>
+        <NavLink className="primary-link" to="/products">Start shopping</NavLink>
+      </section>
+    )
+  }
+
+  return (
+    <section className="orders-page">
+      <p className="eyebrow">Order history</p>
+      <h1>Your Orders</h1>
+
+      <div className="orders-list">
+        {orders.map((order) => (
+          <article className="order-card" key={order.id}>
+            <div className="order-card-header">
+              <div>
+                <p>Order #{order.id}</p>
+                <span>{new Date(order.created_at).toLocaleDateString('en-IN')}</span>
+              </div>
+              <span className={`status status-${order.status}`}>{order.status}</span>
+            </div>
+
+            <div className="order-products">
+              {order.order_items.map((item) => (
+                <div key={item.id}>
+                  <span>{item.product_name} × {item.quantity}</span>
+                  <strong>₹{(item.unit_price * item.quantity).toLocaleString('en-IN')}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="order-total">
+              <span>Total</span>
+              <strong>₹{Number(order.subtotal).toLocaleString('en-IN')}</strong>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
 function Page({ title, text }) {
   return (
     <section className="page">
@@ -536,6 +618,7 @@ async function handleLogout() {
           <NavLink to="/">Home</NavLink>
           <NavLink to="/products">Products</NavLink>
           <NavLink to="/cart">Cart ({cartCount})</NavLink>
+          {user && <NavLink to="/orders">Orders</NavLink>}
          {user ? (
   <>
     <span className="user-email">{user.email}</span>
@@ -554,6 +637,7 @@ async function handleLogout() {
           <Route path="/" element={<HomePage onAddToCart={addToCart} />} />
           <Route path="/products" element={<ProductsPage onAddToCart={addToCart} />} />
           <Route path="/cart" element={<CartPage cart={cart} onRemoveFromCart={removeFromCart} />} />
+          <Route path="/orders" element={<OrdersPage user={user} />} />
            <Route
   path="/checkout"
   element={
