@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import { products } from './data/products'
 import './App.css'
+import { supabase } from './lib/supabase'
 
 function ProductCard({ product, onAddToCart }) {
   return (
@@ -53,7 +54,94 @@ function HomePage({ onAddToCart }) {
     </>
   )
 }
+function LoginPage() {
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setMessage('')
+    setIsLoading(true)
+
+    const result = isRegistering
+      ? await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signInWithPassword({ email, password })
+
+    setIsLoading(false)
+
+    if (result.error) {
+      setMessage(result.error.message)
+      return
+    }
+
+    setMessage(
+      isRegistering
+        ? 'Account created. Check your email if confirmation is required.'
+        : 'You are now logged in.',
+    )
+  }
+
+  return (
+    <section className="auth-page">
+      <form className="auth-card" onSubmit={handleSubmit}>
+        <p className="eyebrow">Customer account</p>
+        <h1>{isRegistering ? 'Create an account' : 'Welcome back'}</h1>
+        <p>
+          {isRegistering
+            ? 'Create an account to place orders and track them.'
+            : 'Log in to access your account and orders.'}
+        </p>
+
+        <label>
+          Email address
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </label>
+
+        <label>
+          Password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            minLength="6"
+            required
+          />
+        </label>
+
+        <button type="submit" disabled={isLoading}>
+          {isLoading
+            ? 'Please wait...'
+            : isRegistering
+              ? 'Create account'
+              : 'Log in'}
+        </button>
+
+        {message && <p className="auth-message">{message}</p>}
+
+        <button
+          className="text-button"
+          type="button"
+          onClick={() => {
+            setIsRegistering((currentMode) => !currentMode)
+            setMessage('')
+          }}
+        >
+          {isRegistering
+            ? 'Already have an account? Log in'
+            : 'New here? Create an account'}
+        </button>
+      </form>
+    </section>
+  )
+}
 function ProductsPage({ onAddToCart }) {
   const [searchText, setSearchText] = useState('')
 
@@ -158,7 +246,25 @@ function Page({ title, text }) {
 
 function App() {
   const [cart, setCart] = useState([])
+const [user, setUser] = useState(null)
 
+useEffect(() => {
+  supabase.auth.getUser().then(({ data }) => {
+    setUser(data.user)
+  })
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null)
+  })
+
+  return () => subscription.unsubscribe()
+}, [])
+
+async function handleLogout() {
+  await supabase.auth.signOut()
+}
   function addToCart(product) {
     setCart((currentCart) => {
       const existingItem = currentCart.find((item) => item.id === product.id)
@@ -192,7 +298,16 @@ function App() {
           <NavLink to="/">Home</NavLink>
           <NavLink to="/products">Products</NavLink>
           <NavLink to="/cart">Cart ({cartCount})</NavLink>
-          <NavLink to="/login">Login</NavLink>
+         {user ? (
+  <>
+    <span className="user-email">{user.email}</span>
+    <button className="logout-button" type="button" onClick={handleLogout}>
+      Logout
+    </button>
+  </>
+) : (
+  <NavLink to="/login">Login</NavLink>
+)}
         </nav>
       </header>
 
@@ -201,7 +316,7 @@ function App() {
           <Route path="/" element={<HomePage onAddToCart={addToCart} />} />
           <Route path="/products" element={<ProductsPage onAddToCart={addToCart} />} />
           <Route path="/cart" element={<CartPage cart={cart} onRemoveFromCart={removeFromCart} />} />
-          <Route path="/login" element={<Page title="Login" text="Customer and admin sign-in will appear here." />} />
+        <Route path="/login" element={<LoginPage />} />
         </Routes>
       </main>
     </div>
