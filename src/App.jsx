@@ -228,13 +228,251 @@ function CartPage({ cart, onRemoveFromCart }) {
             <strong>₹{total.toLocaleString('en-IN')}</strong>
           </div>
           <p>Delivery charges and payment will be added later.</p>
-          <button type="button">Continue to checkout</button>
+         <NavLink className="checkout-link" to="/checkout">
+  Continue to checkout
+</NavLink>
         </aside>
       </div>
     </section>
   )
 }
+function CheckoutPage({ user, cart, onOrderPlaced }) {
+  const [form, setForm] = useState({
+    recipient_name: '',
+    phone: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    postal_code: '',
+  })
+  const [addresses, setAddresses] = useState([])
+  const [selectedAddressId, setSelectedAddressId] = useState('')
+  const [message, setMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false)
 
+  useEffect(() => {
+    if (!user) return
+
+    async function loadAddresses() {
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (!error) {
+        setAddresses(data)
+        if (data.length > 0) {
+          setSelectedAddressId(String(data[0].id))
+        }
+      }
+    }
+
+    loadAddresses()
+  }, [user])
+
+  function updateField(event) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      [event.target.name]: event.target.value,
+    }))
+  }
+
+  async function saveAddress(event) {
+    event.preventDefault()
+    setMessage('')
+    setIsSaving(true)
+
+    const { data, error } = await supabase
+      .from('addresses')
+      .insert(form)
+      .select()
+      .single()
+
+    setIsSaving(false)
+
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
+    setAddresses((currentAddresses) => [data, ...currentAddresses])
+    setSelectedAddressId(String(data.id))
+    setMessage('Delivery address saved. It is selected for this order.')
+    setForm({
+      recipient_name: '',
+      phone: '',
+      address_line1: '',
+      address_line2: '',
+      city: '',
+      state: '',
+      postal_code: '',
+    })
+  }
+
+  async function placeOrder() {
+    const selectedAddress = addresses.find(
+      (address) => String(address.id) === selectedAddressId,
+    )
+
+    if (!selectedAddress) {
+      setMessage('Please save and select a delivery address first.')
+      return
+    }
+
+    setMessage('')
+    setIsPlacingOrder(true)
+
+    const subtotal = cart.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0,
+    )
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        subtotal,
+        shipping_address: selectedAddress,
+      })
+      .select()
+      .single()
+
+    if (orderError) {
+      setIsPlacingOrder(false)
+      setMessage(orderError.message)
+      return
+    }
+
+    const orderItems = cart.map((item) => ({
+      order_id: order.id,
+      product_id: item.id,
+      product_name: item.name,
+      unit_price: item.price,
+      quantity: item.quantity,
+    }))
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems)
+
+    setIsPlacingOrder(false)
+
+    if (itemsError) {
+      setMessage('Your order was created, but its items could not be saved.')
+      return
+    }
+
+    onOrderPlaced()
+    setMessage(`Order #${order.id} placed successfully!`)
+  }
+
+  if (!user) {
+    return (
+      <section className="page">
+        <h1>Sign in to check out</h1>
+        <p>Please log in before adding a delivery address or placing an order.</p>
+        <NavLink className="primary-link" to="/login">Go to Login</NavLink>
+      </section>
+    )
+  }
+
+  if (cart.length === 0 && !message) {
+    return (
+      <section className="page">
+        <h1>Your cart is empty</h1>
+        <p>Add a product before continuing to checkout.</p>
+        <NavLink className="primary-link" to="/products">Browse products</NavLink>
+      </section>
+    )
+  }
+
+  return (
+    <section className="checkout-page">
+      <p className="eyebrow">Checkout</p>
+      <h1>Delivery address</h1>
+      <p className="checkout-intro">Choose a saved address or add a new one.</p>
+
+      {addresses.length > 0 && (
+        <div className="saved-addresses">
+          <h2>Saved addresses</h2>
+          {addresses.map((address) => (
+            <label className="address-choice" key={address.id}>
+              <input
+                type="radio"
+                name="selected-address"
+                value={address.id}
+                checked={selectedAddressId === String(address.id)}
+                onChange={(event) => setSelectedAddressId(event.target.value)}
+              />
+              <span>
+                <strong>{address.recipient_name}</strong><br />
+                {address.address_line1}, {address.city}, {address.state} – {address.postal_code}<br />
+                {address.phone}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+
+      <form className="address-form" onSubmit={saveAddress}>
+        <h2 className="form-heading">Add a new address</h2>
+
+        <label>
+          Full name
+          <input name="recipient_name" value={form.recipient_name} onChange={updateField} required />
+        </label>
+
+        <label>
+          Phone number
+          <input name="phone" value={form.phone} onChange={updateField} required />
+        </label>
+
+        <label className="full-width">
+          Address line 1
+          <input name="address_line1" value={form.address_line1} onChange={updateField} required />
+        </label>
+
+        <label className="full-width">
+          Address line 2 <span>(optional)</span>
+          <input name="address_line2" value={form.address_line2} onChange={updateField} />
+        </label>
+
+        <label>
+          City
+          <input name="city" value={form.city} onChange={updateField} required />
+        </label>
+
+        <label>
+          State
+          <input name="state" value={form.state} onChange={updateField} required />
+        </label>
+
+        <label>
+          PIN code
+          <input name="postal_code" value={form.postal_code} onChange={updateField} required />
+        </label>
+
+        <button type="submit" disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save delivery address'}
+        </button>
+      </form>
+
+      {cart.length > 0 && (
+        <button
+          className="place-order-button"
+          type="button"
+          onClick={placeOrder}
+          disabled={isPlacingOrder}
+        >
+          {isPlacingOrder ? 'Placing order...' : 'Place order'}
+        </button>
+      )}
+
+      {message && <p className="address-message">{message}</p>}
+    </section>
+  )
+}
 function Page({ title, text }) {
   return (
     <section className="page">
@@ -316,6 +554,16 @@ async function handleLogout() {
           <Route path="/" element={<HomePage onAddToCart={addToCart} />} />
           <Route path="/products" element={<ProductsPage onAddToCart={addToCart} />} />
           <Route path="/cart" element={<CartPage cart={cart} onRemoveFromCart={removeFromCart} />} />
+           <Route
+  path="/checkout"
+  element={
+    <CheckoutPage
+      user={user}
+      cart={cart}
+      onOrderPlaced={() => setCart([])}
+    />
+  }
+/>
         <Route path="/login" element={<LoginPage />} />
         </Routes>
       </main>

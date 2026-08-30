@@ -470,3 +470,149 @@ nav a.active {
   border: 0;
   border-radius: 7px;
 }
+.checkout-link {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  color: white;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  background: #1d4ed8;
+  border-radius: 9px;
+}
+.checkout-page {
+  width: min(820px, 84%);
+  margin: 64px auto;
+}
+
+.checkout-intro {
+  color: #64748b;
+}
+
+.address-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-top: 28px;
+  padding: 28px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+.address-form label {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-weight: 700;
+}
+
+.address-form label span {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.address-form input {
+  padding: 12px;
+  color: #172033;
+  font: inherit;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+}
+
+.address-form input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.address-form button {
+  grid-column: 1 / -1;
+  padding: 13px;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: #1d4ed8;
+  border: 0;
+  border-radius: 9px;
+}
+
+.address-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #15803d;
+  font-weight: 700;
+}
+
+@media (max-width: 620px) {
+  .address-form {
+    grid-template-columns: 1fr;
+  }
+
+  .full-width {
+    grid-column: auto;
+  }
+}
+.saved-addresses {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.saved-addresses h2,
+.form-heading {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+}
+
+.form-heading {
+  grid-column: 1 / -1;
+}
+
+.address-choice {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  color: #334155;
+  line-height: 1.55;
+  cursor: pointer;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.address-choice:has(input:checked) {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.address-choice input {
+  width: auto;
+  margin-top: 5px;
+  accent-color: #1d4ed8;
+}
+
+.place-order-button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 15px;
+  color: white;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  background: #15803d;
+  border: 0;
+  border-radius: 10px;
+}
+
+.place-order-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
