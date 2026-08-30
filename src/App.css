@@ -344,3 +344,27 @@ nav a.active {
     text-align: left;
   }
 }
+.search-input {
+  width: min(100%, 520px);
+  margin: 24px 0 28px;
+  padding: 14px 16px;
+  color: #172033;
+  font: inherit;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.empty-search {
+  padding: 32px;
+  color: #64748b;
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+}

@@ -55,19 +55,40 @@ function HomePage({ onAddToCart }) {
 }
 
 function ProductsPage({ onAddToCart }) {
+  const [searchText, setSearchText] = useState('')
+
+  const filteredProducts = products.filter((product) =>
+    `${product.name} ${product.category}`
+      .toLowerCase()
+      .includes(searchText.toLowerCase()),
+  )
+
   return (
     <section className="content-section">
       <p className="eyebrow">Catalogue</p>
       <h1>Explore our products</h1>
-      <div className="product-grid">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onAddToCart={onAddToCart}
-          />
-        ))}
-      </div>
+
+      <input
+        className="search-input"
+        type="search"
+        placeholder="Search products or categories..."
+        value={searchText}
+        onChange={(event) => setSearchText(event.target.value)}
+      />
+
+      {filteredProducts.length === 0 ? (
+        <p className="empty-search">No products found. Try a different search.</p>
+      ) : (
+        <div className="product-grid">
+          {filteredProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              onAddToCart={onAddToCart}
+            />
+          ))}
+        </div>
+      )}
     </section>
   )
 }
